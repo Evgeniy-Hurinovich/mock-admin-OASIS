@@ -1,6 +1,10 @@
 import supabase, { supabaseUrl } from './supabase'
+import { DEMO_MODE } from '../utils/constants'
+import { demoApi } from './demo/store'
 
 export async function getCabins() {
+  if (DEMO_MODE) return demoApi.getCabins()
+
   const { data, error } = await supabase.from('cabins').select('*')
   if (error) {
     console.error(error)
@@ -10,6 +14,8 @@ export async function getCabins() {
 }
 
 export async function createEditCabin(newCabin, id) {
+  if (DEMO_MODE) return demoApi.createEditCabin(newCabin, id)
+
   const hasImagePath = newCabin.image?.startsWith?.(supabaseUrl)
 
   const imageName = `${Math.random()}-${newCabin.image.name}`.replaceAll(
@@ -20,13 +26,10 @@ export async function createEditCabin(newCabin, id) {
     ? newCabin.image
     : `${supabaseUrl}/storage/v1/object/public/house-images/${imageName}`
 
-  // 1. Create/edit cabin
   let query = supabase.from('cabins')
 
-  // A) CREATE
   if (!id) query = query.insert([{ ...newCabin, image: imagePath }])
 
-  // B) EDIT
   if (id) query = query.update({ ...newCabin, image: imagePath }).eq('id', id)
 
   const { data, error } = await query.select().single()
@@ -36,14 +39,12 @@ export async function createEditCabin(newCabin, id) {
     throw new Error('Предложение не было создано')
   }
 
-  // 2. Upload image
   if (hasImagePath) return data
 
   const { error: storageError } = await supabase.storage
     .from('house-images')
     .upload(imageName, newCabin.image)
 
-  // 3. Delete the cabin IF there was an error uplaoding image
   if (storageError) {
     await supabase.from('cabins').delete().eq('id', data.id)
     console.error(storageError)
@@ -56,6 +57,8 @@ export async function createEditCabin(newCabin, id) {
 }
 
 export async function deleteCabin(id) {
+  if (DEMO_MODE) return demoApi.deleteCabin(id)
+
   const { data, error } = await supabase.from('cabins').delete().eq('id', id)
 
   if (error) {

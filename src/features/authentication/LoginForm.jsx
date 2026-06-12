@@ -5,10 +5,11 @@ import Input from '../../ui/Input'
 import FormRowVertical from '../../ui/FormRowVertical'
 import { useLogin } from './useLogin'
 import SpinnerMini from '../../ui/SpinnerMini'
+import { DEMO_EMAIL, DEMO_MODE, DEMO_PASSWORD } from '../../utils/constants'
 
 function LoginForm() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState(DEMO_MODE ? DEMO_EMAIL : '')
+  const [password, setPassword] = useState(DEMO_MODE ? DEMO_PASSWORD : '')
   const { login, isLoading } = useLogin()
 
   function handleSubmit(e) {

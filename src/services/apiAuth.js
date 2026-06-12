@@ -1,75 +1,84 @@
-import supabase, { supabaseUrl } from "./supabase";
+import supabase, { supabaseUrl } from './supabase'
+import { DEMO_MODE } from '../utils/constants'
+import { demoApi } from './demo/store'
 
 export async function signup({ fullName, email, password }) {
+  if (DEMO_MODE) return demoApi.signup()
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
         fullName,
-        avatar: "",
+        avatar: '',
       },
     },
-  });
+  })
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(error.message)
 
-  return data;
+  return data
 }
 
 export async function login({ email, password }) {
+  if (DEMO_MODE) return demoApi.login({ email, password })
+
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
-  });
+  })
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(error.message)
 
-  return data;
+  return data
 }
 
 export async function getCurrentUser() {
-  const { data: session } = await supabase.auth.getSession();
-  if (!session.session) return null;
+  if (DEMO_MODE) return demoApi.getCurrentUser()
 
-  const { data, error } = await supabase.auth.getUser();
+  const { data: session } = await supabase.auth.getSession()
+  if (!session.session) return null
 
-  if (error) throw new Error(error.message);
-  return data?.user;
+  const { data, error } = await supabase.auth.getUser()
+
+  if (error) throw new Error(error.message)
+  return data?.user
 }
 
 export async function logout() {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw new Error(error.message);
+  if (DEMO_MODE) return demoApi.logout()
+
+  const { error } = await supabase.auth.signOut()
+  if (error) throw new Error(error.message)
 }
 
 export async function updateCurrentUser({ password, fullName, avatar }) {
-  // 1. Update password OR fullName
-  let updateData;
-  if (password) updateData = { password };
-  if (fullName) updateData = { data: { fullName } };
+  if (DEMO_MODE) return demoApi.updateCurrentUser({ password, fullName, avatar })
 
-  const { data, error } = await supabase.auth.updateUser(updateData);
+  let updateData
+  if (password) updateData = { password }
+  if (fullName) updateData = { data: { fullName } }
 
-  if (error) throw new Error(error.message);
-  if (!avatar) return data;
+  const { data, error } = await supabase.auth.updateUser(updateData)
 
-  // 2. Upload the avatar image
-  const fileName = `avatar-${data.user.id}-${Math.random()}`;
+  if (error) throw new Error(error.message)
+  if (!avatar) return data
+
+  const fileName = `avatar-${data.user.id}-${Math.random()}`
 
   const { error: storageError } = await supabase.storage
-    .from("avatars")
-    .upload(fileName, avatar);
+    .from('avatars')
+    .upload(fileName, avatar)
 
-  if (storageError) throw new Error(storageError.message);
+  if (storageError) throw new Error(storageError.message)
 
-  // 3. Update avatar in the user
   const { data: updatedUser, error: error2 } = await supabase.auth.updateUser({
     data: {
       avatar: `${supabaseUrl}/storage/v1/object/public/avatars/${fileName}`,
     },
-  });
+  })
 
-  if (error2) throw new Error(error2.message);
-  return updatedUser;
+  if (error2) throw new Error(error2.message)
+  return updatedUser
 }

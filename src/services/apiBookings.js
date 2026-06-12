@@ -1,8 +1,12 @@
 import { getToday } from '../utils/helpers'
 import supabase from './supabase'
 import { PAGE_SIZE } from '../utils/constants'
+import { DEMO_MODE } from '../utils/constants'
+import { demoApi } from './demo/store'
 
 export async function getBookings({ filter, sortBy, page }) {
+  if (DEMO_MODE) return demoApi.getBookings({ filter, sortBy, page })
+
   let query = supabase
     .from('bookings')
     .select(
@@ -10,10 +14,8 @@ export async function getBookings({ filter, sortBy, page }) {
       { count: 'exact' }
     )
 
-  // FILTER
   if (filter) query = query[filter.method || 'eq'](filter.field, filter.value)
 
-  // SORT
   if (sortBy)
     query = query.order(sortBy.field, {
       ascending: sortBy.direction === 'asc',
@@ -36,6 +38,8 @@ export async function getBookings({ filter, sortBy, page }) {
 }
 
 export async function getBooking(id) {
+  if (DEMO_MODE) return demoApi.getBooking(id)
+
   const { data, error } = await supabase
     .from('bookings')
     .select('*, cabins(*), guests(*)')
@@ -50,9 +54,9 @@ export async function getBooking(id) {
   return data
 }
 
-// Returns all BOOKINGS that are were created after the given date. Useful to get bookings created in the last 30 days, for example.
-// date: ISOString
 export async function getBookingsAfterDate(date) {
+  if (DEMO_MODE) return demoApi.getBookingsAfterDate(date)
+
   const { data, error } = await supabase
     .from('bookings')
     .select('created_at, totalPrice, extrasPrice')
@@ -67,8 +71,9 @@ export async function getBookingsAfterDate(date) {
   return data
 }
 
-// Returns all STAYS that are were created after the given date
 export async function getStaysAfterDate(date) {
+  if (DEMO_MODE) return demoApi.getStaysAfterDate(date)
+
   const { data, error } = await supabase
     .from('bookings')
     .select('*, guests(fullName)')
@@ -83,8 +88,9 @@ export async function getStaysAfterDate(date) {
   return data
 }
 
-// Activity means that there is a check in or a check out today
 export async function getStaysTodayActivity() {
+  if (DEMO_MODE) return demoApi.getStaysTodayActivity()
+
   const { data, error } = await supabase
     .from('bookings')
     .select('*, guests(fullName, nationality, countryFlag)')
@@ -92,10 +98,6 @@ export async function getStaysTodayActivity() {
       `and(status.eq.unconfirmed,startDate.eq.${getToday()}),and(status.eq.checked-in,endDate.eq.${getToday()})`
     )
     .order('created_at')
-
-  // Equivalent to this. But by querying this, we only download the data we actually need, otherwise we would need ALL bookings ever created
-  // (stay.status === 'unconfirmed' && isToday(new Date(stay.startDate))) ||
-  // (stay.status === 'checked-in' && isToday(new Date(stay.endDate)))
 
   if (error) {
     console.error(error)
@@ -105,6 +107,8 @@ export async function getStaysTodayActivity() {
 }
 
 export async function updateBooking(id, obj) {
+  if (DEMO_MODE) return demoApi.updateBooking(id, obj)
+
   const { data, error } = await supabase
     .from('bookings')
     .update(obj)
@@ -120,7 +124,8 @@ export async function updateBooking(id, obj) {
 }
 
 export async function deleteBooking(id) {
-  // REMEMBER RLS POLICIES
+  if (DEMO_MODE) return demoApi.deleteBooking(id)
+
   const { data, error } = await supabase.from('bookings').delete().eq('id', id)
 
   if (error) {
